@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Менеджер задач</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #7f5af0, #2cb67d);
+            --card-bg: rgba(15, 23, 42, 0.92);
+            --card-soft: rgba(15, 23, 42, 0.8);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-soft: rgba(148, 163, 184, 0.3);
+            --accent: #2cb67d;
+            --danger: #f97373;
+            --warning: #facc15;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at top left, #1e293b 0, #020617 55%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 960px;
+            background: radial-gradient(circle at top left, #1f2937 0, #020617 55%);
+            border-radius: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow:
+                    0 24px 60px rgba(15, 23, 42, 0.9),
+                    0 0 0 1px rgba(148, 163, 184, 0.25);
+            padding: 2rem 1.5rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.35), transparent 55%);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .app-inner {
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .app-title-block h1 {
+            font-size: 1.9rem;
+            letter-spacing: 0.03em;
+        }
+
+        .app-title-block p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .badge-pill {
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            backdrop-filter: blur(12px);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .app {
+                padding: 1.5rem 1.1rem 2rem;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 1.2rem 1.1rem;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.65);
+        }
+
+        .card-soft {
+            background: var(--card-soft);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-header h2 {
+            font-size: 1rem;
+        }
+
+        .card-header span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Статистика */
+        .stats {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.2rem;
+        }
+        .stat-pill {
+            flex: 1;
+            padding: 0.55rem 0.6rem;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: radial-gradient(circle at top left, rgba(148, 163, 248, 0.15), rgba(15, 23, 42, 0.9));
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+        }
+
+        .stat-total .stat-value {
+            color: #e5e7eb;
+        }
+        .stat-done .stat-value {
+            color: #4ade80;
+        }
+        .stat-pending .stat-value {
+            color: #facc15;
+        }
+
+        /* Форма */
+        .task-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.8rem;
+        }
+
+        .task-form-row {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        @media (max-width: 600px) {
+            .task-form-row {
+                flex-direction: column;
+            }
+        }
+
+        .input-text {
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .input-text::placeholder {
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        .select-priority {
+            width: 150px;
+            padding: 0.55rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            padding: 0.6rem 1.1rem;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            background-image: var(--bg-gradient);
+            color: #0b1120;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            box-shadow: 0 12px 25px rgba(88, 28, 135, 0.7);
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn-ghost {
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.7);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .btn-ghost-danger {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+        }
+
+        .btn-ghost-danger:hover {
+            background: rgba(248, 113, 113, 0.09);
+        }
+
+        /* Список задач */
+        .task-list {
+            margin-top: 0.6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 0.2rem;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.55rem 0.65rem;
+            border-radius: 12px;
+            border: 1px solid rgba(31, 41, 55, 0.95);
+            background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.18), rgba(15, 23, 42, 0.95));
+        }
+
+        .task-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .task-title {
+            font-size: 0.95rem;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            color: rgba(148, 163, 184, 0.9);
+        }
+        .task-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .task-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            align-items: flex-end;
+        }
+
+        @media (max-width: 600px) {
+            .task-item {
+                align-items: flex-start;
+            }
+            .task-actions {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+
+        .checkbox-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+        }
+
+        .priority-high {
+            border-color: rgba(248, 113, 113, 0.9);
+            background: rgba(127, 29, 29, 0.55);
+            color: #fecaca;
+        }
+        .priority-medium {
+            border-color: rgba(250, 204, 21, 0.85);
+            background: rgba(113, 63, 18, 0.6);
+            color: #fef9c3;
+        }
+        .priority-low {
+            border-color: rgba(52, 211, 153, 0.9);
+            background: rgba(6, 95, 70, 0.6);
+            color: #bbf7d0;
+        }
+
+        .priority-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+
+        .link-reset {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .empty-state {
+            margin-top: 0.7rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="app-inner">
+        <header class="app-header">
+            <div class="app-title-block">
+                <h1>Менеджер задач</h1>
+                <p>Плануй день, відстежуй прогрес і керуй пріоритетами.</p>
+            </div>
+            <div class="badge-pill">
+                ✨ Веб-версія · статистика, пріоритети, адаптив
+            </div>
+        </header>
+        <!-- Ліва колонка: список задач -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>Ваші задачі</h2>
+                    <span>
+                        Всього: {{ total }} · Виконано: {{ completed }} · В процесі: {{ pending }}
+                    </span>
+                </div>
+
+                {% if tasks %}
+                    <div class="task-list">
+                        {% for task in tasks %}
+                            <article class="task-item">
+                                <div class="checkbox-wrap">
+                                    <a class="link-reset" href="{{ url_for('complete_task', task_id=task.id) }}"
+                                       title="Перемкнути статус">
+                                        {% if task.completed %}
+                                            ✅
+                                        {% else %}
+                                            ⭕️
+                                        {% endif %}
+                                    </a>
+                                </div>
+
+                                <div class="task-main">
+                                    <div class="task-title {% if task.completed %}completed{% endif %}">
+                                        {{ task.title }}
+                                    </div>
+                                    <div class="task-meta">
+                                        Створено: {{ task.created }}
+                                        {% if task.completed and task.completed_date %}
+                                            · Виконано: {{ task.completed_date }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="task-actions">
+                                    <div>
+                                        {% set p = task.priority %}
+                                        {% if p == 1 %}
+                                            <span class="priority-badge priority-high">
+                                                <span class="priority-dot"></span>
+                                                Високий
+                                            </span>
+                                        {% elif p == 2 %}
+                                            <span class="priority-badge priority-medium">
+                                                <span class="priority-dot"></span>
+                                                Середній
+                                            </span>
+                                        {% else %}
+                                            <span class="priority-badge priority-low">
+                                                <span class="priority-dot"></span>
+                                                Низький
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <a class="btn-ghost btn-ghost-danger link-reset"
+                                       href="{{ url_for('delete_task', task_id=task.id) }}"
+                                       title="Видалити задачу">
+                                        🗑 Видалити
+                                    </a>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">
+                        Поки що немає задач. Додай першу справа — і почнемо планувати день.
+                    </p>
+                {% endif %}
+            </section>
+
+            <!-- Права колонка: форма + дії -->
+            <section class="card card-soft">
+                <div class="card-header">
+                    <h2>Нова задача</h2>
+                    <span>Швидке створення та налаштування пріоритету</span>
+                </div>
+                <form class="task-form" action="{{ url_for('add_task') }}" method="post">
+                    <div class="task-form-row">
+                        <input
+                            class="input-text"
+                            type="text"
+                            name="title"
+                            placeholder="Що потрібно зробити?"
+                            required
+                        >
+
+                        <select class="select-priority" name="priority">
+                            <option value="1">🔥 Високий пріоритет</option>
+                            <option value="2" selected>⭐️ Середній пріоритет</option>
+                            <option value="3">🌱 Низький пріоритет</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        ➕ Додати задачу
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.2rem; display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        ✅ Клік по кружечку змінює статус задачі.<br>
+                        🗑 Кнопка «Видалити» прибирає задачу зі списку.
+                    </div>
+
+                    <a href="{{ url_for('clear_completed') }}" class="btn-ghost btn-ghost-danger link-reset">
+                        🧹 Видалити всі виконані
+                    </a>
+                </div>
+
+                <div style="margin-top: 1.1rem; font-size: 0.8rem; color: var(--text-muted);">
+                    API: <code>/api/tasks</code> повертає список задач у форматі JSON для можливого розширення
+                    (мобільний клієнт, інтеграції тощо).
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+</body>
+</html>

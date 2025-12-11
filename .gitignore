@@ -1,0 +1,7 @@
+pycache/
+*.pyc
+.idea/
+.vscode/
+venv/
+.env
+tasks.json
